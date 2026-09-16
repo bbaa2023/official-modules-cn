@@ -27,8 +27,8 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Install dependencies and regenerate lockfile
-        run: yarn install
+      - name: Regenerate lockfile only
+        run: yarn install --mode=update-lockfile
 
       - name: Commit updated lockfile
         run: |
