@@ -15,6 +15,20 @@ const scope = (ctx: any) => {
 const findOrder = async (em: EntityManager, id: string, tenantId: string, organizationId: string) =>
   em.findOne(ProductionWorkOrder, { id, tenant_id: tenantId, organization_id: organizationId, deleted_at: null })
 
+const allowedOperationTransitions: Record<OperationExecutionStatus, OperationExecutionStatus[]> = {
+  pending: ['in_progress'],
+  in_progress: ['paused', 'completed'],
+  paused: ['in_progress'],
+  completed: [],
+}
+
+const assertOperationTransition = (current: string, next: OperationExecutionStatus) => {
+  const currentStatus = operationExecutionStatusSchema.parse(current)
+  if (!allowedOperationTransitions[currentStatus]?.includes(next)) {
+    throw new CrudHttpError(409, { error: `Invalid operation status transition: ${currentStatus} -> ${next}` })
+  }
+}
+
 const reportProduction: CommandHandler<ProductionReportInput, { id: string; completedQuantity: number; remainingQuantity: number }> = {
   id: 'production_work_orders.production.report',
   async execute(rawInput, ctx) {
@@ -51,6 +65,14 @@ const reportOperation: CommandHandler<OperationReportInput, { id: string; comple
     if (!operation) throw new CrudHttpError(404, { error: 'Operation not found' })
     const nextQuantity = Number(operation.completed_quantity) + input.quantity
     if (nextQuantity > Number(order.planned_quantity)) throw new CrudHttpError(409, { error: 'Operation quantity cannot exceed planned quantity' })
+
+    if (input.executionStatus) {
+      assertOperationTransition(operation.execution_status, input.executionStatus)
+      if (input.executionStatus === 'completed' && nextQuantity < Number(order.planned_quantity)) {
+        throw new CrudHttpError(409, { error: 'Operation cannot be completed before planned quantity is fully reported' })
+      }
+    }
+
     const report = em.create(ProductionWorkOrderReport, {
       tenant_id: tenantId, organization_id: organizationId, work_order_id: order.id, operation_id: operation.id,
       quantity: input.quantity, actual_minutes: input.actualMinutes ?? 0, reported_at: input.reportedAt ?? new Date(), note: input.note,
@@ -77,15 +99,7 @@ const setOperationExecutionStatus: CommandHandler<{ workOrderId: string; operati
     if (order.status !== 'in_progress' && order.status !== 'released') throw new CrudHttpError(409, { error: 'Work order is not executable in its current status' })
     const operation = await em.findOne(ProductionWorkOrderOperation, { id: input.operationId, work_order_id: order.id, tenant_id: tenantId, organization_id: organizationId, deleted_at: null })
     if (!operation) throw new CrudHttpError(404, { error: 'Operation not found' })
-    const allowed: Record<OperationExecutionStatus, OperationExecutionStatus[]> = {
-      pending: ['in_progress'],
-      in_progress: ['paused', 'completed'],
-      paused: ['in_progress'],
-      completed: [],
-    }
-    if (!allowed[operation.execution_status as OperationExecutionStatus]?.includes(input.status)) {
-      throw new CrudHttpError(409, { error: `Invalid operation status transition: ${operation.execution_status} -> ${input.status}` })
-    }
+    assertOperationTransition(operation.execution_status, input.status)
     if (input.status === 'completed' && Number(operation.completed_quantity) < Number(order.planned_quantity)) {
       throw new CrudHttpError(409, { error: 'Operation cannot be completed before planned quantity is fully reported' })
     }
