@@ -38,7 +38,30 @@ export class ProductionWorkOrderOperation {
   @Property({ type: 'string', nullable: true }) work_center_id?: string
   @Property({ type: 'decimal', nullable: true }) standard_minutes?: number
   @Property({ type: 'string', default: 'pending' }) status = 'pending'
+  @Property({ type: 'string', default: 'pending' }) execution_status = 'pending'
   @Property({ type: 'decimal', default: 0 }) completed_quantity = 0
+  @Property({ type: 'decimal', default: 0 }) actual_minutes = 0
+  @Property({ type: 'date', nullable: true }) started_at?: Date
+  @Property({ type: 'date', nullable: true }) completed_at?: Date
+  @Property() created_at: Date = new Date()
+  @Property({ onUpdate: () => new Date() }) updated_at: Date = new Date()
+  @Property({ nullable: true }) deleted_at?: Date
+  @Property({ default: true }) is_active = true
+}
+
+@Entity({ tableName: 'production_work_order_reports' })
+@Index({ properties: ['tenant_id', 'organization_id', 'work_order_id', 'reported_at'] })
+@Index({ properties: ['work_order_id', 'operation_id'] })
+export class ProductionWorkOrderReport {
+  @PrimaryKey({ type: 'uuid' }) id: string = newId()
+  @Property({ type: 'string' }) organization_id!: string
+  @Property({ type: 'string' }) tenant_id!: string
+  @Property({ type: 'string' }) work_order_id!: string
+  @Property({ type: 'string', nullable: true }) operation_id?: string
+  @Property({ type: 'decimal' }) quantity!: number
+  @Property({ type: 'decimal', default: 0 }) actual_minutes = 0
+  @Property({ type: 'date' }) reported_at: Date = new Date()
+  @Property({ type: 'text', nullable: true }) note?: string
   @Property() created_at: Date = new Date()
   @Property({ onUpdate: () => new Date() }) updated_at: Date = new Date()
   @Property({ nullable: true }) deleted_at?: Date
