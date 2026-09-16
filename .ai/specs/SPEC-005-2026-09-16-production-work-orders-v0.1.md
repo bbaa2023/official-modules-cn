@@ -19,13 +19,12 @@ V0.1 covers production work-order master data and execution state:
 - operation sequence
 - work-center reference by ID
 - standard minutes
-- progress quantity
-- audit/undo for mutations
+- progress quantity field
 - Chinese-first i18n
 - RBAC features
-- AI tool surface for read/query and mutation requests, with mutations executed through the command/approval path
+- AI tool surface for read/query and approval-gated mutation requests
 
-V0.1 intentionally excludes MRP, BOM explosion, capacity optimization, shop-floor barcode flows, costing, quality management, and automatic inventory consumption.
+Undo/audit snapshots, automatic CRUD side effects/indexing, BOM/MRP, capacity optimization, shop-floor barcode flows, costing, quality management, and automatic inventory consumption are deferred to the next implementation phase.
 
 ## Architecture
 
@@ -44,7 +43,7 @@ Both are tenant/organization scoped and use UUID primary keys plus standard time
 
 Cancellation is allowed from non-terminal states: `cancelled`.
 
-State transitions are validated by commands so future approval and audit integration has one mutation boundary.
+State transitions are validated by commands so HTTP and AI mutation paths share one business mutation boundary.
 
 ## RBAC
 
@@ -54,24 +53,22 @@ State transitions are validated by commands so future approval and audit integra
 - `production_work_orders.delete`
 - `production_work_orders.release`
 
-Superadmin receives all features; admin receives view/create/edit/release.
+Superadmin receives all features; admin receives view/create/edit/release; employee receives view.
 
 ## API surface
 
 - list/detail work orders
 - create/update/delete work orders
 - transition status
-- manage ordered operations
+- replace the ordered operation set during create/update
 
 Every protected route declares auth and feature requirements and OpenAPI metadata. Queries are scoped by tenant and organization.
 
 ## UI
 
-Backend pages provide a work-order list and create/edit/detail flows using Open Mercato UI primitives. All user-visible strings are translation keys with Chinese defaults.
+V0.1 currently provides the backend work-order list surface. Detail/edit/create UI is the next UI increment and will consume the already implemented APIs rather than introducing a second business layer.
 
 ## AI
-
-Initial tools:
 
 - `production_work_orders.list`
 - `production_work_orders.get`
@@ -79,16 +76,16 @@ Initial tools:
 - `production_work_orders.update`
 - `production_work_orders.transition`
 
-Read tools are directly queryable. Mutation tools invoke the same command IDs used by HTTP routes; approval behavior is delegated to the platform command/approval layer rather than bypassed in the AI tool.
+Read tools are directly queryable. Mutation tools are marked `isMutation: true`, reuse the documented API routes through the platform operation runner, and use `loadBeforeRecord` where a before/after diff is available. The agent uses `mutationPolicy: 'confirm-required'`, so persistence is approval-gated by the platform runtime.
 
 ## Delivery phases
 
 1. Scaffold package and module metadata.
 2. Implement entities, validators, ACL/setup and i18n.
-3. Implement commands with undo/audit-compatible snapshots.
-4. Implement APIs and backend UI.
-5. Add AI tools and integration tests.
-6. Run typecheck/build/tests and fix repository-level issues.
+3. Implement commands, scoped operation replacement, and status state machine.
+4. Implement list/detail APIs and backend list UI.
+5. Add read tools, approval-gated mutation tools, and production assistant agent.
+6. Add detail/edit UI, audit/undo, integration tests, and repository-level verification.
 
 ## Non-goals
 
