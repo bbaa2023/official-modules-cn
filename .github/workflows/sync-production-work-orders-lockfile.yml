@@ -11,7 +11,7 @@ on:
 
 jobs:
   sync:
-    name: Sync yarn.lock
+    name: Sync platform versions and yarn.lock
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,17 +27,20 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Regenerate lockfile only
+      - name: Sync platform package versions
+        run: yarn platform:sync --channel latest
+
+      - name: Regenerate lockfile
         run: yarn install --mode=update-lockfile
 
-      - name: Commit updated lockfile
+      - name: Commit synchronized platform manifests and lockfile
         run: |
-          if git diff --quiet -- yarn.lock; then
-            echo "yarn.lock is already synchronized."
+          if git diff --quiet -- package.json apps/*/package.json packages/*/package.json yarn.lock; then
+            echo "Platform manifests and yarn.lock are already synchronized."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add yarn.lock
-          git commit -m "fix(production-work-orders): sync yarn lockfile"
+          git add package.json apps/*/package.json packages/*/package.json yarn.lock
+          git commit -m "fix(platform): sync platform package versions"
           git push origin HEAD:feat/production-work-orders-v0.1
