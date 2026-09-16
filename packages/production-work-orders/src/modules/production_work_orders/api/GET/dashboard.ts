@@ -47,6 +47,11 @@ export default async function GET(req: Request) {
       actualMinutes: operations.reduce((sum, o) => sum + Number(o.actual_minutes), 0),
     }
 
+    const statusFlow = ['draft', 'planned', 'released', 'in_progress', 'completed', 'cancelled'].map((status) => ({
+      status,
+      count: rows.filter((r) => r.status === status).length,
+    }))
+
     const risks = [...overdue.map((r) => ({ id: r.id, orderNo: r.order_no, type: 'overdue', label: '已延期', progressPercent: Number(r.planned_quantity) > 0 ? Math.round(Number(r.completed_quantity) / Number(r.planned_quantity) * 1000) / 10 : 0, dueDate: r.due_date?.toISOString() ?? null })),
       ...dueSoon.map((r) => ({ id: r.id, orderNo: r.order_no, type: 'dueSoon', label: '临近交期', progressPercent: Number(r.planned_quantity) > 0 ? Math.round(Number(r.completed_quantity) / Number(r.planned_quantity) * 1000) / 10 : 0, dueDate: r.due_date?.toISOString() ?? null })),
       ...lowProgress.filter((r) => !overdue.some((x) => x.id === r.id)).map((r) => ({ id: r.id, orderNo: r.order_no, type: 'lowProgress', label: '低进度', progressPercent: Number(r.planned_quantity) > 0 ? Math.round(Number(r.completed_quantity) / Number(r.planned_quantity) * 1000) / 10 : 0, dueDate: r.due_date?.toISOString() ?? null }))
@@ -79,6 +84,7 @@ export default async function GET(req: Request) {
         progressPercent: progress,
       },
       execution,
+      statusFlow,
       risks,
       inProduction,
     })
