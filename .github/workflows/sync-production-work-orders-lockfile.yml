@@ -1,0 +1,46 @@
+name: Sync Production Work Orders Lockfile
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/production-work-orders-v0.1
+
+jobs:
+  sync:
+    name: Sync platform versions and yarn.lock
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feat/production-work-orders-v0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Sync platform package versions
+        run: yarn platform:sync --channel latest
+
+      - name: Regenerate lockfile
+        run: yarn install --mode=update-lockfile
+
+      - name: Commit synchronized platform manifests and lockfile
+        run: |
+          if git diff --quiet -- package.json apps/*/package.json packages/*/package.json yarn.lock; then
+            echo "Platform manifests and yarn.lock are already synchronized."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json apps/*/package.json packages/*/package.json yarn.lock
+          git commit -m "fix(platform): sync platform package versions"
+          git push origin HEAD:feat/production-work-orders-v0.1
