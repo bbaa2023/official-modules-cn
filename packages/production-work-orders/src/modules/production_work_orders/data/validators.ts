@@ -10,6 +10,16 @@ export const operationInputSchema = z.object({
   standardMinutes: z.number().nonnegative().optional(),
 })
 
+const operationsSchema = z.array(operationInputSchema).max(100).superRefine((operations, ctx) => {
+  const seen = new Set<number>()
+  for (const operation of operations) {
+    if (seen.has(operation.sequence)) {
+      ctx.addIssue({ code: 'custom', path: [operations.indexOf(operation), 'sequence'], message: 'Operation sequence must be unique' })
+    }
+    seen.add(operation.sequence)
+  }
+})
+
 export const createWorkOrderSchema = z.object({
   tenantId: z.string().uuid(),
   organizationId: z.string().uuid(),
@@ -19,7 +29,7 @@ export const createWorkOrderSchema = z.object({
   dueDate: z.coerce.date().optional(),
   priority: workOrderPrioritySchema.default('normal'),
   notes: z.string().max(5000).optional(),
-  operations: z.array(operationInputSchema).max(100).default([]),
+  operations: operationsSchema.default([]),
 })
 
 export const updateWorkOrderSchema = createWorkOrderSchema.partial().omit({ tenantId: true, organizationId: true }).extend({
