@@ -23,19 +23,12 @@ const reportProduction: CommandHandler<ProductionReportInput, { id: string; comp
     const em = (ctx.container.resolve('em') as EntityManager).fork()
     const order = await findOrder(em, input.workOrderId, tenantId, organizationId)
     if (!order) throw new CrudHttpError(404, { error: 'Work order not found' })
-    if (order.status === 'draft' || order.status === 'planned' || order.status === 'cancelled' || order.status === 'completed') {
-      throw new CrudHttpError(409, { error: 'Work order is not reportable in its current status' })
-    }
+    if (order.status === 'draft' || order.status === 'planned' || order.status === 'cancelled' || order.status === 'completed') throw new CrudHttpError(409, { error: 'Work order is not reportable in its current status' })
     const nextQuantity = Number(order.completed_quantity) + input.quantity
     if (nextQuantity > Number(order.planned_quantity)) throw new CrudHttpError(409, { error: 'Reported quantity cannot exceed planned quantity' })
     const report = em.create(ProductionWorkOrderReport, {
-      tenant_id: tenantId,
-      organization_id: organizationId,
-      work_order_id: order.id,
-      quantity: input.quantity,
-      actual_minutes: input.actualMinutes ?? 0,
-      reported_at: input.reportedAt ?? new Date(),
-      note: input.note,
+      tenant_id: tenantId, organization_id: organizationId, work_order_id: order.id,
+      quantity: input.quantity, actual_minutes: input.actualMinutes ?? 0, reported_at: input.reportedAt ?? new Date(), note: input.note,
     })
     em.persist(report)
     order.completed_quantity = nextQuantity
@@ -53,22 +46,14 @@ const reportOperation: CommandHandler<OperationReportInput, { id: string; comple
     const em = (ctx.container.resolve('em') as EntityManager).fork()
     const order = await findOrder(em, input.workOrderId, tenantId, organizationId)
     if (!order) throw new CrudHttpError(404, { error: 'Work order not found' })
-    if (order.status === 'draft' || order.status === 'planned' || order.status === 'cancelled' || order.status === 'completed') {
-      throw new CrudHttpError(409, { error: 'Work order is not executable in its current status' })
-    }
+    if (order.status === 'draft' || order.status === 'planned' || order.status === 'cancelled' || order.status === 'completed') throw new CrudHttpError(409, { error: 'Work order is not executable in its current status' })
     const operation = await em.findOne(ProductionWorkOrderOperation, { id: input.operationId, work_order_id: order.id, tenant_id: tenantId, organization_id: organizationId, deleted_at: null })
     if (!operation) throw new CrudHttpError(404, { error: 'Operation not found' })
     const nextQuantity = Number(operation.completed_quantity) + input.quantity
     if (nextQuantity > Number(order.planned_quantity)) throw new CrudHttpError(409, { error: 'Operation quantity cannot exceed planned quantity' })
     const report = em.create(ProductionWorkOrderReport, {
-      tenant_id: tenantId,
-      organization_id: organizationId,
-      work_order_id: order.id,
-      operation_id: operation.id,
-      quantity: input.quantity,
-      actual_minutes: input.actualMinutes ?? 0,
-      reported_at: input.reportedAt ?? new Date(),
-      note: input.note,
+      tenant_id: tenantId, organization_id: organizationId, work_order_id: order.id, operation_id: operation.id,
+      quantity: input.quantity, actual_minutes: input.actualMinutes ?? 0, reported_at: input.reportedAt ?? new Date(), note: input.note,
     })
     em.persist(report)
     operation.completed_quantity = nextQuantity
@@ -92,6 +77,18 @@ const setOperationExecutionStatus: CommandHandler<{ workOrderId: string; operati
     if (order.status !== 'in_progress' && order.status !== 'released') throw new CrudHttpError(409, { error: 'Work order is not executable in its current status' })
     const operation = await em.findOne(ProductionWorkOrderOperation, { id: input.operationId, work_order_id: order.id, tenant_id: tenantId, organization_id: organizationId, deleted_at: null })
     if (!operation) throw new CrudHttpError(404, { error: 'Operation not found' })
+    const allowed: Record<OperationExecutionStatus, OperationExecutionStatus[]> = {
+      pending: ['in_progress'],
+      in_progress: ['paused', 'completed'],
+      paused: ['in_progress'],
+      completed: [],
+    }
+    if (!allowed[operation.execution_status as OperationExecutionStatus]?.includes(input.status)) {
+      throw new CrudHttpError(409, { error: `Invalid operation status transition: ${operation.execution_status} -> ${input.status}` })
+    }
+    if (input.status === 'completed' && Number(operation.completed_quantity) < Number(order.planned_quantity)) {
+      throw new CrudHttpError(409, { error: 'Operation cannot be completed before planned quantity is fully reported' })
+    }
     const now = new Date()
     operation.execution_status = input.status
     if (input.status === 'in_progress' && !operation.started_at) operation.started_at = now
