@@ -1,4 +1,4 @@
-import { createWorkOrderSchema, transitionWorkOrderSchema } from '../data/validators'
+import { createWorkOrderSchema, transitionWorkOrderSchema, productionReportSchema, operationReportSchema, operationExecutionStatusSchema } from '../data/validators'
 
 describe('production work-order validators', () => {
   it('accepts a minimal work order with default priority and empty operations', () => {
@@ -40,5 +40,29 @@ describe('production work-order validators', () => {
   it('limits transition states to the module state machine values', () => {
     expect(transitionWorkOrderSchema.parse({ id: '00000000-0000-0000-0000-000000000004', status: 'released' }).status).toBe('released')
     expect(() => transitionWorkOrderSchema.parse({ id: '00000000-0000-0000-0000-000000000004', status: 'unknown' })).toThrow()
+  })
+
+  it('accepts positive production reports and rejects zero or negative quantities', () => {
+    expect(productionReportSchema.parse({
+      workOrderId: '00000000-0000-0000-0000-000000000004',
+      quantity: 2,
+      actualMinutes: 30,
+    }).quantity).toBe(2)
+    expect(() => productionReportSchema.parse({
+      workOrderId: '00000000-0000-0000-0000-000000000004',
+      quantity: 0,
+    })).toThrow()
+  })
+
+  it('validates operation reporting and execution status', () => {
+    const parsed = operationReportSchema.parse({
+      workOrderId: '00000000-0000-0000-0000-000000000004',
+      operationId: '00000000-0000-0000-0000-000000000005',
+      quantity: 1,
+      executionStatus: 'in_progress',
+    })
+    expect(parsed.executionStatus).toBe('in_progress')
+    expect(operationExecutionStatusSchema.parse('paused')).toBe('paused')
+    expect(() => operationExecutionStatusSchema.parse('running')).toThrow()
   })
 })
