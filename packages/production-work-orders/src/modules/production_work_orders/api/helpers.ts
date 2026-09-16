@@ -27,7 +27,6 @@ export const commandContext = (req: Request, container: Awaited<ReturnType<typeo
 })
 
 export const routeError = (error: unknown) => {
-  const status = error instanceof CrudHttpError ? error.status : 500
-  const payload = error instanceof CrudHttpError ? error.payload : { error: 'Internal server error' }
-  return NextResponse.json(payload, { status })
+  if (error instanceof CrudHttpError) return NextResponse.json(error.body, { status: error.status })
+  return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
 }
