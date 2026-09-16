@@ -53,3 +53,5 @@ jobs:
           git add package.json apps/*/package.json packages/*/package.json yarn.lock
           git commit -m "fix(platform): sync platform package versions"
           git push origin HEAD:feat/production-work-orders-v0.1
+
+# CI bootstrap sequence intentionally runs before platform:sync.
