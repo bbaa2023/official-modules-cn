@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 export const workOrderStatusSchema = z.enum(['draft', 'planned', 'released', 'in_progress', 'completed', 'cancelled'])
 export const workOrderPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent'])
+export const operationExecutionStatusSchema = z.enum(['pending', 'in_progress', 'paused', 'completed'])
 
 export const operationInputSchema = z.object({
   sequence: z.number().int().min(1),
@@ -12,12 +13,12 @@ export const operationInputSchema = z.object({
 
 const operationsSchema = z.array(operationInputSchema).max(100).superRefine((operations, ctx) => {
   const seen = new Set<number>()
-  for (const operation of operations) {
+  operations.forEach((operation, index) => {
     if (seen.has(operation.sequence)) {
-      ctx.addIssue({ code: 'custom', path: [operations.indexOf(operation), 'sequence'], message: 'Operation sequence must be unique' })
+      ctx.addIssue({ code: 'custom', path: [index, 'sequence'], message: 'Operation sequence must be unique' })
     }
     seen.add(operation.sequence)
-  }
+  })
 })
 
 export const createWorkOrderSchema = z.object({
@@ -41,6 +42,22 @@ export const transitionWorkOrderSchema = z.object({
   status: workOrderStatusSchema,
 })
 
+export const productionReportSchema = z.object({
+  workOrderId: z.string().uuid(),
+  quantity: z.number().positive(),
+  actualMinutes: z.number().nonnegative().optional(),
+  reportedAt: z.coerce.date().optional(),
+  note: z.string().max(2000).optional(),
+})
+
+export const operationReportSchema = productionReportSchema.extend({
+  operationId: z.string().uuid(),
+  executionStatus: operationExecutionStatusSchema.optional(),
+})
+
 export type CreateWorkOrderInput = z.infer<typeof createWorkOrderSchema>
 export type UpdateWorkOrderInput = z.infer<typeof updateWorkOrderSchema>
 export type TransitionWorkOrderInput = z.infer<typeof transitionWorkOrderSchema>
+export type ProductionReportInput = z.infer<typeof productionReportSchema>
+export type OperationReportInput = z.infer<typeof operationReportSchema>
+export type OperationExecutionStatus = z.infer<typeof operationExecutionStatusSchema>
