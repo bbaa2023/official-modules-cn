@@ -13,6 +13,25 @@ const assertScope = (ctx: any, tenantId: string, organizationId: string) => {
 const findOrder = async (em: EntityManager, id: string, tenantId: string, organizationId: string) =>
   em.findOne(ProductionWorkOrder, { id, tenant_id: tenantId, organization_id: organizationId, deleted_at: null }, { populate: ['operations'] })
 
+const replaceOperations = async (em: EntityManager, order: ProductionWorkOrder, operations: CreateWorkOrderInput['operations']) => {
+  const current = await em.find(ProductionWorkOrderOperation, { work_order_id: order.id, tenant_id: order.tenant_id, organization_id: order.organization_id, deleted_at: null })
+  for (const operation of current) {
+    operation.deleted_at = new Date()
+    operation.is_active = false
+  }
+  for (const operation of operations) {
+    em.persist(em.create(ProductionWorkOrderOperation, {
+      tenant_id: order.tenant_id,
+      organization_id: order.organization_id,
+      work_order_id: order.id,
+      sequence: operation.sequence,
+      name: operation.name,
+      work_center_id: operation.workCenterId,
+      standard_minutes: operation.standardMinutes,
+    }))
+  }
+}
+
 const createWorkOrder: CommandHandler<CreateWorkOrderInput, { id: string; orderNo: string }> = {
   id: 'production_work_orders.work_order.create',
   async execute(rawInput, ctx) {
@@ -59,12 +78,17 @@ const updateWorkOrder: CommandHandler<UpdateWorkOrderInput, { id: string }> = {
     const order = await findOrder(em, input.id, tenantId, organizationId)
     if (!order) throw new CrudHttpError(404, { error: 'Work order not found' })
     if (order.status === 'completed' || order.status === 'cancelled') throw new CrudHttpError(409, { error: 'Terminal work orders cannot be edited' })
-    if (input.orderNo !== undefined) order.order_no = input.orderNo
+    if (input.orderNo !== undefined && input.orderNo !== order.order_no) {
+      const duplicate = await em.findOne(ProductionWorkOrder, { tenant_id: tenantId, organization_id: organizationId, order_no: input.orderNo, deleted_at: null, id: { $ne: order.id } })
+      if (duplicate) throw new CrudHttpError(409, { error: 'Work order number already exists' })
+      order.order_no = input.orderNo
+    }
     if (input.productId !== undefined) order.product_id = input.productId
     if (input.plannedQuantity !== undefined) order.planned_quantity = input.plannedQuantity
     if (input.dueDate !== undefined) order.due_date = input.dueDate
     if (input.priority !== undefined) order.priority = input.priority
     if (input.notes !== undefined) order.notes = input.notes
+    if (input.operations !== undefined) await replaceOperations(em, order, input.operations)
     await em.flush()
     return { id: order.id }
   },
@@ -107,6 +131,11 @@ const deleteWorkOrder: CommandHandler<{ id: string }, { id: string }> = {
     if (!order) throw new CrudHttpError(404, { error: 'Work order not found' })
     order.deleted_at = new Date()
     order.is_active = false
+    const operations = await em.find(ProductionWorkOrderOperation, { work_order_id: order.id, tenant_id: tenantId, organization_id: organizationId, deleted_at: null })
+    for (const operation of operations) {
+      operation.deleted_at = new Date()
+      operation.is_active = false
+    }
     await em.flush()
     return { id: order.id }
   },
