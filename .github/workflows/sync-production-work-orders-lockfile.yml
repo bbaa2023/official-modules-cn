@@ -30,7 +30,10 @@ jobs:
       - name: Verify Yarn
         run: yarn --version
 
-      - name: Bootstrap dependencies
+      - name: Bootstrap lockfile
+        run: yarn install --mode=update-lockfile
+
+      - name: Install workspace dependencies
         run: yarn install
 
       - name: Sync platform package versions
