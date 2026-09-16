@@ -12,12 +12,12 @@
   "exports": {
     ".": "./dist/index.js",
     "./*": { "types": "./src/*.ts", "default": "./dist/*.js" },
-    "./*/*": { "types": ["./src/*/*.ts", "./src/*/*.tsx"], "default": "./dist/*/*.js" },
+    "./*/*": { "types": ["./src/*/*.ts", "./src/*/*.tsx"], "default": "./dist/*.js" },
     "./*/*/*": { "types": ["./src/*/*/*.ts", "./src/*/*/*.tsx"], "default": "./dist/*/*/*.js" }
   },
   "peerDependencies": {
     "@mikro-orm/postgresql": "^6.5.9",
-    "@open-mercato/ai-assistant": "^0.8.0",
+    "@open-mercato/ai-assistant": "^0.7.0",
     "@open-mercato/core": "0.4.9-develop.1080.5a6ccf821e",
     "@open-mercato/shared": "0.4.9-develop.1080.5a6ccf821e",
     "@open-mercato/ui": "0.4.9-develop.1080.5a6ccf821e",
@@ -26,7 +26,7 @@
     "zod": ">=3.23.0"
   },
   "devDependencies": {
-    "@open-mercato/ai-assistant": "^0.8.0",
+    "@open-mercato/ai-assistant": "^0.7.0",
     "@open-mercato/core": "0.4.9-develop.1080.5a6ccf821e",
     "@open-mercato/shared": "0.4.9-develop.1080.5a6ccf821e",
     "@open-mercato/ui": "0.4.9-develop.1080.5a6ccf821e",
