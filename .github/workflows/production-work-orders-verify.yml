@@ -1,0 +1,55 @@
+name: Production Work Orders Verification
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Build, Typecheck & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install markitdown
+        run: pipx install 'markitdown[all]'
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build packages
+        run: yarn build:packages
+
+      - name: Generate
+        run: yarn generate
+
+      - name: Rebuild packages
+        run: yarn build:packages
+
+      - name: Check dependency versions
+        run: yarn check:dep-versions
+
+      - name: Check i18n sync
+        run: yarn i18n:check-sync:packages
+
+      - name: Check i18n usage
+        continue-on-error: true
+        run: yarn i18n:check-usage:packages
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Test
+        run: yarn test
