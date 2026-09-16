@@ -93,15 +93,15 @@ export default function WorkOrderForm({ mode, id, initial, initialOperations }: 
 
     setSaving(true)
     try {
-      const response = await apiCall(
+      const response = await apiCall<Record<string, any>>(
         mode === 'create' ? '/api/production-work-orders/work-orders' : `/api/production-work-orders/work-orders/${id}`,
         { method: mode === 'create' ? 'POST' : 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) },
       )
       if (!response.ok) {
-        const message = response.result?.error ?? response.error?.message ?? '保存失败，请检查输入或权限。'
+        const message = response.result?.error ?? `保存失败（HTTP ${response.status}）。`
         throw new Error(message)
       }
-      const result = response.result as { id?: string }
+      const result = response.result as { id?: string } | null
       const targetId = mode === 'create' ? result?.id : id
       if (!targetId) throw new Error('保存成功但未返回工单 ID。')
       router.push(`/admin/production-work-orders/work-orders/${targetId}`)
