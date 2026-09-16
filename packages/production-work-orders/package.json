@@ -1,0 +1,36 @@
+{
+  "name": "@open-mercato/production-work-orders",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node watch.mjs",
+    "test": "jest --config jest.config.cjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./*": { "types": "./src/*.ts", "default": "./dist/*.js" },
+    "./*/*": { "types": ["./src/*/*.ts", "./src/*/*.tsx"], "default": "./dist/*/*.js" },
+    "./*/*/*": { "types": ["./src/*/*/*.ts", "./src/*/*/*.tsx"], "default": "./dist/*/*/*.js" }
+  },
+  "peerDependencies": {
+    "@mikro-orm/postgresql": "^6.5.9",
+    "@open-mercato/core": "0.4.9-develop.1080.5a6ccf821e",
+    "@open-mercato/shared": "0.4.9-develop.1080.5a6ccf821e",
+    "@open-mercato/ui": "0.4.9-develop.1080.5a6ccf821e",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@open-mercato/core": "0.4.9-develop.1080.5a6ccf821e",
+    "@open-mercato/shared": "0.4.9-develop.1080.5a6ccf821e",
+    "@open-mercato/ui": "0.4.9-develop.1080.5a6ccf821e",
+    "esbuild": "^0.25.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": { "access": "public" }
+}
