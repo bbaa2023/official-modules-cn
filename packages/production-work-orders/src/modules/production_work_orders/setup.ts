@@ -8,15 +8,23 @@ export const setup: ModuleSetupConfig = {
       'production_work_orders.edit',
       'production_work_orders.delete',
       'production_work_orders.release',
+      'production_work_orders.report',
+      'production_work_orders.execute',
+      'production_work_orders.analyze',
     ],
     admin: [
       'production_work_orders.view',
       'production_work_orders.create',
       'production_work_orders.edit',
       'production_work_orders.release',
+      'production_work_orders.report',
+      'production_work_orders.execute',
+      'production_work_orders.analyze',
     ],
     employee: [
       'production_work_orders.view',
+      'production_work_orders.report',
+      'production_work_orders.execute',
     ],
   },
 }
