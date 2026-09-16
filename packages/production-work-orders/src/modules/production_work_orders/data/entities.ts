@@ -1,11 +1,12 @@
 import { Entity, PrimaryKey, Property, Index } from '@mikro-orm/core'
-import { v4 as uuid } from 'uuid'
+
+const newId = () => crypto.randomUUID()
 
 @Entity({ tableName: 'production_work_orders' })
 @Index({ properties: ['organization_id'] })
 @Index({ properties: ['organization_id', 'status'] })
 export class ProductionWorkOrder {
-  @PrimaryKey({ type: 'uuid' }) id: string = uuid()
+  @PrimaryKey({ type: 'uuid' }) id: string = newId()
   @Property({ type: 'string' }) organization_id!: string
   @Property({ type: 'string' }) tenant_id!: string
   @Property({ type: 'string' }) order_no!: string
@@ -26,7 +27,7 @@ export class ProductionWorkOrder {
 @Index({ properties: ['organization_id'] })
 @Index({ properties: ['work_order_id', 'sequence'] })
 export class ProductionWorkOrderOperation {
-  @PrimaryKey({ type: 'uuid' }) id: string = uuid()
+  @PrimaryKey({ type: 'uuid' }) id: string = newId()
   @Property({ type: 'string' }) organization_id!: string
   @Property({ type: 'string' }) tenant_id!: string
   @Property({ type: 'string' }) work_order_id!: string
