@@ -1,4 +1,5 @@
 import type { ModuleInfo } from '@open-mercato/shared/modules/registry'
+import './commands/work-orders'
 
 export const metadata: ModuleInfo = {
   name: 'production_work_orders',
