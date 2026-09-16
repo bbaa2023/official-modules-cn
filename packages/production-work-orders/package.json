@@ -17,20 +17,24 @@
   },
   "peerDependencies": {
     "@mikro-orm/postgresql": "^6.5.9",
+    "@open-mercato/ai-assistant": "^0.8.0",
     "@open-mercato/core": "0.4.9-develop.1080.5a6ccf821e",
     "@open-mercato/shared": "0.4.9-develop.1080.5a6ccf821e",
     "@open-mercato/ui": "0.4.9-develop.1080.5a6ccf821e",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": ">=3.23.0"
   },
   "devDependencies": {
+    "@open-mercato/ai-assistant": "^0.8.0",
     "@open-mercato/core": "0.4.9-develop.1080.5a6ccf821e",
     "@open-mercato/shared": "0.4.9-develop.1080.5a6ccf821e",
     "@open-mercato/ui": "0.4.9-develop.1080.5a6ccf821e",
     "esbuild": "^0.25.0",
     "jest": "^30.2.0",
     "ts-jest": "^29.4.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "zod": "^4.4.3"
   },
   "publishConfig": { "access": "public" }
 }
