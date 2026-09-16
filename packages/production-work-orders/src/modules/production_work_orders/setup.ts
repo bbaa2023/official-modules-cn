@@ -15,6 +15,9 @@ export const setup: ModuleSetupConfig = {
       'production_work_orders.edit',
       'production_work_orders.release',
     ],
+    employee: [
+      'production_work_orders.view',
+    ],
   },
 }
 export default setup
