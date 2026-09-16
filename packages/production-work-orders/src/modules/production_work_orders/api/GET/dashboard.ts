@@ -52,10 +52,38 @@ export default async function GET(req: Request) {
       count: rows.filter((r) => r.status === status).length,
     }))
 
-    const risks = [...overdue.map((r) => ({ id: r.id, orderNo: r.order_no, type: 'overdue', label: '已延期', progressPercent: Number(r.planned_quantity) > 0 ? Math.round(Number(r.completed_quantity) / Number(r.planned_quantity) * 1000) / 10 : 0, dueDate: r.due_date?.toISOString() ?? null })),
-      ...dueSoon.map((r) => ({ id: r.id, orderNo: r.order_no, type: 'dueSoon', label: '临近交期', progressPercent: Number(r.planned_quantity) > 0 ? Math.round(Number(r.completed_quantity) / Number(r.planned_quantity) * 1000) / 10 : 0, dueDate: r.due_date?.toISOString() ?? null })),
-      ...lowProgress.filter((r) => !overdue.some((x) => x.id === r.id)).map((r) => ({ id: r.id, orderNo: r.order_no, type: 'lowProgress', label: '低进度', progressPercent: Number(r.planned_quantity) > 0 ? Math.round(Number(r.completed_quantity) / Number(r.planned_quantity) * 1000) / 10 : 0, dueDate: r.due_date?.toISOString() ?? null }))
+    const percentOf = (r: ProductionWorkOrder) => Number(r.planned_quantity) > 0
+      ? Math.round(Number(r.completed_quantity) / Number(r.planned_quantity) * 1000) / 10
+      : 0
+
+    const risks = [...overdue.map((r) => ({ id: r.id, orderNo: r.order_no, type: 'overdue', label: '已延期', progressPercent: percentOf(r), dueDate: r.due_date?.toISOString() ?? null })),
+      ...dueSoon.map((r) => ({ id: r.id, orderNo: r.order_no, type: 'dueSoon', label: '临近交期', progressPercent: percentOf(r), dueDate: r.due_date?.toISOString() ?? null })),
+      ...lowProgress.filter((r) => !overdue.some((x) => x.id === r.id)).map((r) => ({ id: r.id, orderNo: r.order_no, type: 'lowProgress', label: '低进度', progressPercent: percentOf(r), dueDate: r.due_date?.toISOString() ?? null }))
     ].slice(0, 8)
+
+    const aiInsights = risks.slice(0, 6).map((r) => {
+      const order = rows.find((x) => x.id === r.id)!
+      const remaining = Math.max(0, Number(order.planned_quantity) - Number(order.completed_quantity))
+      const daysToDue = order.due_date ? Math.ceil((order.due_date.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)) : null
+      const high = r.type === 'overdue' || (r.type === 'dueSoon' && r.progressPercent < 50)
+      const level = high ? 'high' : r.type === 'lowProgress' ? 'medium' : 'low'
+      const reason = r.type === 'overdue'
+        ? `已超过交期${daysToDue === null ? '' : `${Math.abs(daysToDue)}天`}，当前完成率仅 ${r.progressPercent}%`
+        : r.type === 'dueSoon'
+          ? `距离交期${daysToDue ?? 0}天，当前仍有 ${remaining} 个单位未完成`
+          : `当前完成率 ${r.progressPercent}%，低于生产关注阈值 50%`
+      const impact = r.type === 'overdue'
+        ? '可能形成交付延期并挤压后续生产计划'
+        : r.type === 'dueSoon'
+          ? '若当前产出速度不提升，交期缓冲空间将快速收窄'
+          : '可能造成在制任务积压与产能利用率下降'
+      const action = r.type === 'overdue'
+        ? '优先核查工序阻塞、暂停原因与剩余产量'
+        : r.type === 'dueSoon'
+          ? '优先确认当前工序进度，并评估加速或调整排产'
+          : '检查工序执行状态，定位低产出环节'
+      return { id: r.id, orderNo: r.orderNo, type: r.type, level, reason, impact, suggestedAction: action, progressPercent: r.progressPercent, dueDate: r.dueDate }
+    })
 
     const inProduction = activeRows.filter((r) => r.status === 'in_progress').slice(0, 8).map((r) => ({
       id: r.id,
@@ -63,7 +91,7 @@ export default async function GET(req: Request) {
       productId: r.product_id,
       plannedQuantity: Number(r.planned_quantity),
       completedQuantity: Number(r.completed_quantity),
-      progressPercent: Number(r.planned_quantity) > 0 ? Math.round(Number(r.completed_quantity) / Number(r.planned_quantity) * 1000) / 10 : 0,
+      progressPercent: percentOf(r),
       dueDate: r.due_date?.toISOString() ?? null,
       priority: r.priority,
     }))
@@ -86,6 +114,7 @@ export default async function GET(req: Request) {
       execution,
       statusFlow,
       risks,
+      aiInsights,
       inProduction,
     })
   } catch (error) {
