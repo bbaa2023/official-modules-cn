@@ -5,6 +5,9 @@ permissions:
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feat/production-work-orders-v0.1
 
 jobs:
   sync:
