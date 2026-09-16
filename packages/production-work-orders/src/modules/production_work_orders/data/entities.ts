@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property, Index, OneToMany } from '@mikro-orm/core'
+import { Entity, PrimaryKey, Property, Index } from '@mikro-orm/core'
 import { v4 as uuid } from 'uuid'
 
 @Entity({ tableName: 'production_work_orders' })
@@ -20,9 +20,6 @@ export class ProductionWorkOrder {
   @Property({ onUpdate: () => new Date() }) updated_at: Date = new Date()
   @Property({ nullable: true }) deleted_at?: Date
   @Property({ default: true }) is_active = true
-
-  @OneToMany(() => ProductionWorkOrderOperation, operation => operation.work_order)
-  operations = new Array<ProductionWorkOrderOperation>()
 }
 
 @Entity({ tableName: 'production_work_order_operations' })
@@ -43,6 +40,4 @@ export class ProductionWorkOrderOperation {
   @Property({ onUpdate: () => new Date() }) updated_at: Date = new Date()
   @Property({ nullable: true }) deleted_at?: Date
   @Property({ default: true }) is_active = true
-
-  @Property({ persist: false }) work_order?: ProductionWorkOrder
 }
