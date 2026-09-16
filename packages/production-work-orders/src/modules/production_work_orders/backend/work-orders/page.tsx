@@ -11,7 +11,10 @@ export default function ProductionWorkOrdersPage() {
   useEffect(() => { let cancelled = false; apiCall<{ items: any[] }>('/api/production-work-orders/work-orders').then((response) => { if (!cancelled) setRows(response.result?.items ?? []) }).catch((err: any) => { if (!cancelled) setError(err?.message ?? 'Failed to load work orders') }); return () => { cancelled = true } }, [])
   const openDetail = (id: string) => { window.location.href = `/admin/production-work-orders/work-orders/${id}` }
   return <Page><PageHeader title={t('production_work_orders.page.title', '生产工单')} /><PageBody>
-    <div style={{ marginBottom: 16 }}><button type="button" onClick={() => { window.location.href = '/admin/production-work-orders/work-orders/new' }}>{t('production_work_orders.new', '新建工单')}</button></div>
+    <div style={{ display:'flex', gap:10, marginBottom:16 }}>
+      <button type="button" onClick={() => { window.location.href = '/admin/production-work-orders/dashboard' }} style={{ padding:'9px 15px', borderRadius:10, border:'1px solid #dbe3ef', background:'linear-gradient(135deg,#101b31,#263d69)', color:'#fff', cursor:'pointer' }}>{t('production_work_orders.dashboard.open', '生产驾驶舱')}</button>
+      <button type="button" onClick={() => { window.location.href = '/admin/production-work-orders/work-orders/new' }}>{t('production_work_orders.new', '新建工单')}</button>
+    </div>
     {error ? <div role="alert">{error}</div> : null}
     <DataTable data={rows} columns={[
       { id: 'order_no', header: t('production_work_orders.order_no', '工单编号'), accessorKey: 'order_no' },
