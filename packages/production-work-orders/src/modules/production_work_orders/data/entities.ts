@@ -1,8 +1,9 @@
-import { Entity, PrimaryKey, Property, Index } from '@mikro-orm/core'
+import { Entity, PrimaryKey, Property, Index, Unique } from '@mikro-orm/core'
 
 const newId = () => crypto.randomUUID()
 
 @Entity({ tableName: 'production_work_orders' })
+@Unique({ properties: ['tenant_id', 'organization_id', 'order_no'] })
 @Index({ properties: ['organization_id'] })
 @Index({ properties: ['organization_id', 'status'] })
 export class ProductionWorkOrder {
@@ -24,6 +25,7 @@ export class ProductionWorkOrder {
 }
 
 @Entity({ tableName: 'production_work_order_operations' })
+@Unique({ properties: ['tenant_id', 'organization_id', 'work_order_id', 'sequence'] })
 @Index({ properties: ['organization_id'] })
 @Index({ properties: ['work_order_id', 'sequence'] })
 export class ProductionWorkOrderOperation {
