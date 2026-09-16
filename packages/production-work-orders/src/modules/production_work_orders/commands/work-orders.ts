@@ -11,7 +11,7 @@ const assertScope = (ctx: any, tenantId: string, organizationId: string) => {
 }
 
 const findOrder = async (em: EntityManager, id: string, tenantId: string, organizationId: string) =>
-  em.findOne(ProductionWorkOrder, { id, tenant_id: tenantId, organization_id: organizationId, deleted_at: null }, { populate: ['operations'] })
+  em.findOne(ProductionWorkOrder, { id, tenant_id: tenantId, organization_id: organizationId, deleted_at: null })
 
 const replaceOperations = async (em: EntityManager, order: ProductionWorkOrder, operations: CreateWorkOrderInput['operations']) => {
   const current = await em.find(ProductionWorkOrderOperation, { work_order_id: order.id, tenant_id: order.tenant_id, organization_id: order.organization_id, deleted_at: null })
