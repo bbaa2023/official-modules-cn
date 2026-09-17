@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 
 type Operation = {
+  id?: string
   sequence: number
   name: string
   workCenterId?: string
@@ -20,6 +21,7 @@ type WorkOrderFormProps = {
 
 const normalizeOperations = (items: Array<Record<string, any>> = []): Operation[] =>
   items.map((item, index) => ({
+    id: item.id ?? undefined,
     sequence: Number(item.sequence ?? index + 1),
     name: String(item.name ?? ''),
     workCenterId: item.workCenterId ?? item.work_center_id ?? undefined,
@@ -84,6 +86,7 @@ export default function WorkOrderForm({ mode, id, initial, initialOperations }: 
       priority,
       notes: notes || undefined,
       operations: operations.map((item) => ({
+        ...(item.id ? { id: item.id } : {}),
         sequence: Number(item.sequence),
         name: item.name.trim(),
         workCenterId: item.workCenterId?.trim() || undefined,
@@ -130,7 +133,7 @@ export default function WorkOrderForm({ mode, id, initial, initialOperations }: 
 
     <section style={{ display: 'grid', gap: 12, padding: 18, border: '1px solid var(--om-color-border, #ddd)', borderRadius: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h3 style={{ margin: 0 }}>生产工序</h3><button type="button" onClick={addOperation}>+ 添加工序</button></div>
-      {operations.length === 0 ? <div>暂无工序，可点击“添加工序”。</div> : operations.map((operation, index) => <div key={`${index}-${operation.sequence}`} style={{ display: 'grid', gridTemplateColumns: '90px 2fr 2fr 130px auto', gap: 10, alignItems: 'end', padding: 12, border: '1px solid var(--om-color-border, #ddd)', borderRadius: 8 }}>
+      {operations.length === 0 ? <div>暂无工序，可点击“添加工序”。</div> : operations.map((operation, index) => <div key={`${operation.id ?? index}-${operation.sequence}`} style={{ display: 'grid', gridTemplateColumns: '90px 2fr 2fr 130px auto', gap: 10, alignItems: 'end', padding: 12, border: '1px solid var(--om-color-border, #ddd)', borderRadius: 8 }}>
         <label>序号<input type="number" min="1" step="1" value={operation.sequence} onChange={(e) => updateOperation(index, { sequence: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box' }} /></label>
         <label>工序名称<input value={operation.name} onChange={(e) => updateOperation(index, { name: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box' }} /></label>
         <label>工作中心 UUID<input value={operation.workCenterId ?? ''} onChange={(e) => updateOperation(index, { workCenterId: e.target.value || undefined })} placeholder="可选" style={{ display: 'block', width: '100%', boxSizing: 'border-box' }} /></label>
