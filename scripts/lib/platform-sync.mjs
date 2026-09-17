@@ -524,6 +524,10 @@ function createExpectedTempRepo(repoRoot, expectedManifestMap) {
   execFileSync('yarn', ['install', '--mode=update-lockfile'], {
     cwd: tempRepoRoot,
     stdio: ['ignore', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      YARN_ENABLE_SCRIPTS: '0',
+    },
   })
 
   return tempRepoRoot
