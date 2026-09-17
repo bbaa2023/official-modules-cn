@@ -61,6 +61,7 @@ export const enabledModules: ModuleEntry[] = [
   { id: 'portal', from: '@open-mercato/core' },
   { id: 'example', from: '@app' },
   { id: 'ratelimit_probe', from: '@app' },
+  { id: 'production_work_orders', from: '@open-mercato/production-work-orders' },
 ]
 
 if (enabledModules.some((entry) => entry.id === 'example')) {
