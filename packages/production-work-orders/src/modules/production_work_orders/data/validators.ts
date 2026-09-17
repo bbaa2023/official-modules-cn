@@ -5,6 +5,7 @@ export const workOrderPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent'
 export const operationExecutionStatusSchema = z.enum(['pending', 'in_progress', 'paused', 'completed'])
 
 export const operationInputSchema = z.object({
+  id: z.string().uuid().optional(),
   sequence: z.number().int().min(1),
   name: z.string().trim().min(1).max(255),
   workCenterId: z.string().uuid().optional(),
@@ -13,11 +14,18 @@ export const operationInputSchema = z.object({
 
 const operationsSchema = z.array(operationInputSchema).max(100).superRefine((operations, ctx) => {
   const seen = new Set<number>()
+  const seenIds = new Set<string>()
   operations.forEach((operation, index) => {
     if (seen.has(operation.sequence)) {
       ctx.addIssue({ code: 'custom', path: [index, 'sequence'], message: 'Operation sequence must be unique' })
     }
     seen.add(operation.sequence)
+    if (operation.id) {
+      if (seenIds.has(operation.id)) {
+        ctx.addIssue({ code: 'custom', path: [index, 'id'], message: 'Operation id must be unique' })
+      }
+      seenIds.add(operation.id)
+    }
   })
 })
 
