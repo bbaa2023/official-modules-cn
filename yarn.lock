@@ -6404,6 +6404,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@open-mercato/production-work-orders@workspace:packages/production-work-orders"
   dependencies:
+    "@mikro-orm/core": "npm:^7.0.13"
     "@mikro-orm/decorators": "npm:^7.0.13"
     "@open-mercato/ai-assistant": "npm:0.6.0"
     "@open-mercato/core": "npm:0.6.0"
