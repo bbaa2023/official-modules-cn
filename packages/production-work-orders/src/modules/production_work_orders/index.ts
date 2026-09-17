@@ -1,6 +1,6 @@
 import type { ModuleInfo } from '@open-mercato/shared/modules/registry'
-import './commands/work-orders'
-import './commands/reporting'
+import './commands/work-orders.js'
+import './commands/reporting.js'
 
 export const metadata: ModuleInfo = {
   name: 'production_work_orders',
@@ -9,6 +9,6 @@ export const metadata: ModuleInfo = {
   ejectable: true,
 }
 
-export { features } from './acl'
-export { setup } from './setup'
+export { features } from './acl.js'
+export { setup } from './setup.js'
 export default metadata
