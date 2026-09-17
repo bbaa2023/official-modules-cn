@@ -11,9 +11,24 @@
   },
   "exports": {
     ".": "./dist/index.js",
-    "./*": { "types": "./src/*.ts", "default": "./dist/*.js" },
-    "./*/*": { "types": ["./src/*/*.ts", "./src/*/*.tsx"], "default": "./dist/*.js" },
-    "./*/*/*": { "types": ["./src/*/*/*.ts", "./src/*/*/*.tsx"], "default": "./dist/*/*/*.js" }
+    "./*": {
+      "types": "./src/*.ts",
+      "default": "./dist/*.js"
+    },
+    "./*/*": {
+      "types": [
+        "./src/*/*.ts",
+        "./src/*/*.tsx"
+      ],
+      "default": "./dist/*.js"
+    },
+    "./*/*/*": {
+      "types": [
+        "./src/*/*/*.ts",
+        "./src/*/*/*.tsx"
+      ],
+      "default": "./dist/*/*/*.js"
+    }
   },
   "peerDependencies": {
     "@mikro-orm/postgresql": "^7.0.13",
@@ -40,5 +55,7 @@
     "typescript": "^5.9.3",
     "zod": "^4.3.6"
   },
-  "publishConfig": { "access": "public" }
+  "publishConfig": {
+    "access": "public"
+  }
 }
