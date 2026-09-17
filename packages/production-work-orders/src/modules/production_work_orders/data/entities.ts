@@ -18,10 +18,10 @@ export class ProductionWorkOrder {
   @Property({ type: 'string', default: 'normal' }) priority = 'normal'
   @Property({ type: 'string', default: 'draft' }) status = 'draft'
   @Property({ type: 'text', nullable: true }) notes?: string
-  @Property() created_at: Date = new Date()
-  @Property({ onUpdate: () => new Date() }) updated_at: Date = new Date()
-  @Property({ nullable: true }) deleted_at?: Date
-  @Property({ default: true }) is_active = true
+  @Property({ type: 'date' }) created_at: Date = new Date()
+  @Property({ type: 'date', onUpdate: () => new Date() }) updated_at: Date = new Date()
+  @Property({ type: 'date', nullable: true }) deleted_at?: Date
+  @Property({ type: 'boolean', default: true }) is_active = true
 }
 
 @Entity({ tableName: 'production_work_order_operations' })
@@ -43,10 +43,10 @@ export class ProductionWorkOrderOperation {
   @Property({ type: 'decimal', default: 0 }) actual_minutes = 0
   @Property({ type: 'date', nullable: true }) started_at?: Date
   @Property({ type: 'date', nullable: true }) completed_at?: Date
-  @Property() created_at: Date = new Date()
-  @Property({ onUpdate: () => new Date() }) updated_at: Date = new Date()
-  @Property({ nullable: true }) deleted_at?: Date
-  @Property({ default: true }) is_active = true
+  @Property({ type: 'date' }) created_at: Date = new Date()
+  @Property({ type: 'date', onUpdate: () => new Date() }) updated_at: Date = new Date()
+  @Property({ type: 'date', nullable: true }) deleted_at?: Date
+  @Property({ type: 'boolean', default: true }) is_active = true
 }
 
 @Entity({ tableName: 'production_work_order_reports' })
@@ -62,8 +62,8 @@ export class ProductionWorkOrderReport {
   @Property({ type: 'decimal', default: 0 }) actual_minutes = 0
   @Property({ type: 'date' }) reported_at: Date = new Date()
   @Property({ type: 'text', nullable: true }) note?: string
-  @Property() created_at: Date = new Date()
-  @Property({ onUpdate: () => new Date() }) updated_at: Date = new Date()
-  @Property({ nullable: true }) deleted_at?: Date
-  @Property({ default: true }) is_active = true
+  @Property({ type: 'date' }) created_at: Date = new Date()
+  @Property({ type: 'date', onUpdate: () => new Date() }) updated_at: Date = new Date()
+  @Property({ type: 'date', nullable: true }) deleted_at?: Date
+  @Property({ type: 'boolean', default: true }) is_active = true
 }
