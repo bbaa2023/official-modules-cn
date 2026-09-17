@@ -60,3 +60,4 @@ jobs:
 # CI validates the production-work-orders package directly. Repository-wide typecheck/test
 # currently include unrelated upstream/other-package failures, so they are intentionally
 # outside the required gate for this demo module.
+# Trigger verification after automated lockfile synchronization commits.
