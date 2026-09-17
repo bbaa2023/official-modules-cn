@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property, Index, Unique } from '@mikro-orm/core'
+import { Entity, PrimaryKey, Property, Index, Unique } from '@mikro-orm/decorators'
 
 const newId = () => crypto.randomUUID()
 
