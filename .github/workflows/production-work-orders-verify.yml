@@ -56,3 +56,5 @@ jobs:
 
       - name: Test
         run: yarn test
+
+# CI trigger verification: keep workflow logic unchanged.
