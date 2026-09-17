@@ -15,6 +15,31 @@ const scope = (ctx: any) => {
 const findOrder = async (em: EntityManager, id: string, tenantId: string, organizationId: string) =>
   em.findOne(ProductionWorkOrder, { id, tenant_id: tenantId, organization_id: organizationId, deleted_at: null })
 
+const findActiveOperations = async (em: EntityManager, order: ProductionWorkOrder) =>
+  em.find(ProductionWorkOrderOperation, {
+    work_order_id: order.id,
+    tenant_id: order.tenant_id,
+    organization_id: order.organization_id,
+    deleted_at: null,
+  }, { orderBy: { sequence: 'asc' } })
+
+const assertPreviousOperationCompleted = (operations: ProductionWorkOrderOperation[], operation: ProductionWorkOrderOperation) => {
+  const index = operations.findIndex((item) => item.id === operation.id)
+  if (index <= 0) return
+  const previous = operations[index - 1]
+  if (previous.execution_status !== 'completed') {
+    throw new CrudHttpError(409, { error: `Previous operation ${previous.sequence} must be completed before operation ${operation.sequence}` })
+  }
+}
+
+const syncWorkOrderProgressFromOperations = (order: ProductionWorkOrder, operations: ProductionWorkOrderOperation[]) => {
+  if (!operations.length) return
+  const finalOperation = operations[operations.length - 1]
+  const completedQuantity = Math.min(Number(order.planned_quantity), Number(finalOperation.completed_quantity))
+  order.completed_quantity = completedQuantity
+  if (completedQuantity >= Number(order.planned_quantity) && order.status !== 'cancelled') order.status = 'completed'
+}
+
 const allowedOperationTransitions: Record<OperationExecutionStatus, OperationExecutionStatus[]> = {
   pending: ['in_progress'],
   in_progress: ['paused', 'completed'],
@@ -38,6 +63,8 @@ const reportProduction: CommandHandler<ProductionReportInput, { id: string; comp
     const order = await findOrder(em, input.workOrderId, tenantId, organizationId)
     if (!order) throw new CrudHttpError(404, { error: 'Work order not found' })
     if (order.status === 'draft' || order.status === 'planned' || order.status === 'cancelled' || order.status === 'completed') throw new CrudHttpError(409, { error: 'Work order is not reportable in its current status' })
+    const operations = await findActiveOperations(em, order)
+    if (operations.length) throw new CrudHttpError(409, { error: 'Work order has operations; report through the final operation instead' })
     const nextQuantity = Number(order.completed_quantity) + input.quantity
     if (nextQuantity > Number(order.planned_quantity)) throw new CrudHttpError(409, { error: 'Reported quantity cannot exceed planned quantity' })
     const report = em.create(ProductionWorkOrderReport, {
@@ -61,8 +88,10 @@ const reportOperation: CommandHandler<OperationReportInput, { id: string; comple
     const order = await findOrder(em, input.workOrderId, tenantId, organizationId)
     if (!order) throw new CrudHttpError(404, { error: 'Work order not found' })
     if (order.status === 'draft' || order.status === 'planned' || order.status === 'cancelled' || order.status === 'completed') throw new CrudHttpError(409, { error: 'Work order is not executable in its current status' })
-    const operation = await em.findOne(ProductionWorkOrderOperation, { id: input.operationId, work_order_id: order.id, tenant_id: tenantId, organization_id: organizationId, deleted_at: null })
+    const operations = await findActiveOperations(em, order)
+    const operation = operations.find((item) => item.id === input.operationId)
     if (!operation) throw new CrudHttpError(404, { error: 'Operation not found' })
+    assertPreviousOperationCompleted(operations, operation)
     const nextQuantity = Number(operation.completed_quantity) + input.quantity
     if (nextQuantity > Number(order.planned_quantity)) throw new CrudHttpError(409, { error: 'Operation quantity cannot exceed planned quantity' })
 
@@ -83,6 +112,7 @@ const reportOperation: CommandHandler<OperationReportInput, { id: string; comple
     if (input.executionStatus) operation.execution_status = input.executionStatus
     if (operation.execution_status === 'in_progress' && !operation.started_at) operation.started_at = input.reportedAt ?? new Date()
     if (operation.execution_status === 'completed') operation.completed_at = input.reportedAt ?? new Date()
+    syncWorkOrderProgressFromOperations(order, operations)
     await em.flush()
     return { id: report.id, completedQuantity: Number(operation.completed_quantity), executionStatus: operation.execution_status as OperationExecutionStatus }
   },
@@ -97,8 +127,10 @@ const setOperationExecutionStatus: CommandHandler<{ workOrderId: string; operati
     const order = await findOrder(em, input.workOrderId, tenantId, organizationId)
     if (!order) throw new CrudHttpError(404, { error: 'Work order not found' })
     if (order.status !== 'in_progress' && order.status !== 'released') throw new CrudHttpError(409, { error: 'Work order is not executable in its current status' })
-    const operation = await em.findOne(ProductionWorkOrderOperation, { id: input.operationId, work_order_id: order.id, tenant_id: tenantId, organization_id: organizationId, deleted_at: null })
+    const operations = await findActiveOperations(em, order)
+    const operation = operations.find((item) => item.id === input.operationId)
     if (!operation) throw new CrudHttpError(404, { error: 'Operation not found' })
+    assertPreviousOperationCompleted(operations, operation)
     assertOperationTransition(operation.execution_status, input.status)
     if (input.status === 'completed' && Number(operation.completed_quantity) < Number(order.planned_quantity)) {
       throw new CrudHttpError(409, { error: 'Operation cannot be completed before planned quantity is fully reported' })
@@ -107,6 +139,7 @@ const setOperationExecutionStatus: CommandHandler<{ workOrderId: string; operati
     operation.execution_status = input.status
     if (input.status === 'in_progress' && !operation.started_at) operation.started_at = now
     if (input.status === 'completed') operation.completed_at = now
+    syncWorkOrderProgressFromOperations(order, operations)
     await em.flush()
     return { id: operation.id, status: operation.execution_status as OperationExecutionStatus }
   },
