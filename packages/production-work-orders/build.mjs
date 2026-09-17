@@ -1,7 +1,7 @@
 import * as esbuild from 'esbuild'
 import { glob } from 'glob'
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -36,4 +36,14 @@ const addJsExtension = {
 }
 
 await esbuild.build({ entryPoints, outdir: 'dist', format: 'esm', platform: 'node', target: 'node18', sourcemap: true, jsx: 'automatic', plugins: [addJsExtension] })
+
+const jsonFiles = await glob('src/**/*.json', { cwd: __dirname, absolute: true })
+for (const file of jsonFiles) {
+  const relativePath = relative(join(__dirname, 'src'), file)
+  const outputFile = join(__dirname, 'dist', `${relativePath}.js`)
+  mkdirSync(dirname(outputFile), { recursive: true })
+  const json = readFileSync(file, 'utf-8')
+  writeFileSync(outputFile, `export default ${json}\n`)
+}
+
 console.log('production-work-orders built successfully')
