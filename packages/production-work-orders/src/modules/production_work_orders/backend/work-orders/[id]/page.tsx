@@ -25,6 +25,7 @@ export default function ProductionWorkOrderDetailPage() {
 
   const progress = useMemo(() => { if (!data?.order) return 0; const planned = Number(data.order.planned_quantity) || 0; const completed = Number(data.order.completed_quantity) || 0; return planned > 0 ? Math.min(100, Math.round(completed / planned * 100)) : 0 }, [data])
   const remaining = useMemo(() => Math.max(0, Number(data?.order?.planned_quantity || 0) - Number(data?.order?.completed_quantity || 0)), [data])
+  const hasOperations = Boolean(data?.operations?.length)
 
   const transition = async (status: string) => { setBusy(true); setError(null); const response = await apiCall(`/api/production-work-orders/work-orders/${id}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); setBusy(false); if (!response.ok) { setError(t('production_work_orders.detail.transition_failed', '状态变更失败。')); return }; await load() }
 
@@ -38,7 +39,7 @@ export default function ProductionWorkOrderDetailPage() {
   const setOperationStatus = async (operationId: string, status: string) => {
     setOperationBusy(operationId); setError(null)
     const response = await apiCall(`/api/production-work-orders/work-orders/${id}/operations/${operationId}/status`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
-    setOperationBusy(null); if (!response.ok) { setError('工序状态更新失败。'); return }; await load()
+    setOperationBusy(null); if (!response.ok) { setError('工序状态更新失败，请确认上一道工序已经完成。'); return }; await load()
   }
 
   const reportOperation = async (operationId: string) => {
@@ -47,7 +48,7 @@ export default function ProductionWorkOrderDetailPage() {
     if (!Number.isFinite(quantity) || quantity <= 0) { setError('请输入大于 0 的工序报工数量。'); return }
     setOperationBusy(operationId); setError(null)
     const response = await apiCall(`/api/production-work-orders/work-orders/${id}/operations/${operationId}/report`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quantity }) })
-    setOperationBusy(null); if (!response.ok) { setError('工序报工失败，请检查数量和工单状态。'); return }
+    setOperationBusy(null); if (!response.ok) { setError('工序报工失败，请检查数量、工序顺序和工单状态。'); return }
     setOperationReportQty((current) => ({ ...current, [operationId]: '' })); await load()
   }
 
@@ -82,7 +83,7 @@ export default function ProductionWorkOrderDetailPage() {
       </div> : null}
     </section>
 
-    {order.status === 'released' || order.status === 'in_progress' ? <section style={{ padding: 18, border: '1px solid var(--om-color-border, #ddd)', borderRadius: 10 }}>
+    {order.status === 'released' || order.status === 'in_progress' ? (!hasOperations ? <section style={{ padding: 18, border: '1px solid var(--om-color-border, #ddd)', borderRadius: 10 }}>
       <h3 style={{ marginTop: 0 }}>本次生产报工</h3>
       <form onSubmit={report} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr auto', gap: 10, alignItems: 'end' }}>
         <label>完成数量<input required min="0.000001" step="any" type="number" value={reportQty} onChange={(e) => setReportQty(e.target.value)} style={{ display: 'block', width: '100%', boxSizing: 'border-box' }} /></label>
@@ -90,7 +91,7 @@ export default function ProductionWorkOrderDetailPage() {
         <label>备注<input value={reportNote} onChange={(e) => setReportNote(e.target.value)} style={{ display: 'block', width: '100%', boxSizing: 'border-box' }} /></label>
         <button type="submit" disabled={busy}>提交报工</button>
       </form>
-    </section> : null}
+    </section> : <section style={{ padding: 18, border: '1px solid var(--om-color-border, #ddd)', borderRadius: 10 }}><strong>工序模式</strong><div style={{ marginTop: 6, fontSize: 13 }}>本工单已配置生产工序，工单进度以最后一道工序的完成数量为准，请在下方逐道工序报工。</div></section>) : null}
 
     <section style={{ padding: 18, border: '1px solid var(--om-color-border, #ddd)', borderRadius: 10 }}>
       <h3 style={{ marginTop: 0 }}>工序执行</h3>
