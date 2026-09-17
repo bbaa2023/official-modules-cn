@@ -14,13 +14,48 @@ const findOrder = async (em: EntityManager, id: string, tenantId: string, organi
   em.findOne(ProductionWorkOrder, { id, tenant_id: tenantId, organization_id: organizationId, deleted_at: null })
 
 const replaceOperations = async (em: EntityManager, order: ProductionWorkOrder, operations: CreateWorkOrderInput['operations']) => {
-  const current = await em.find(ProductionWorkOrderOperation, { work_order_id: order.id, tenant_id: order.tenant_id, organization_id: order.organization_id, deleted_at: null })
-  for (const operation of current) { operation.deleted_at = new Date(); operation.is_active = false }
+  const current = await em.find(ProductionWorkOrderOperation, {
+    work_order_id: order.id,
+    tenant_id: order.tenant_id,
+    organization_id: order.organization_id,
+    deleted_at: null,
+  })
+  const currentById = new Map(current.map((operation) => [operation.id, operation]))
+  const submittedIds = new Set(operations.flatMap((operation) => operation.id ? [operation.id] : []))
+
   for (const operation of operations) {
-    em.persist(em.create(ProductionWorkOrderOperation, {
-      tenant_id: order.tenant_id, organization_id: order.organization_id, work_order_id: order.id,
-      sequence: operation.sequence, name: operation.name, work_center_id: operation.workCenterId, standard_minutes: operation.standardMinutes,
-    }))
+    if (operation.id) {
+      const existing = currentById.get(operation.id)
+      if (!existing) throw new CrudHttpError(409, { error: 'Operation does not belong to this work order' })
+      existing.sequence = operation.sequence
+      existing.name = operation.name
+      existing.work_center_id = operation.workCenterId
+      existing.standard_minutes = operation.standardMinutes
+    } else {
+      em.persist(em.create(ProductionWorkOrderOperation, {
+        tenant_id: order.tenant_id,
+        organization_id: order.organization_id,
+        work_order_id: order.id,
+        sequence: operation.sequence,
+        name: operation.name,
+        work_center_id: operation.workCenterId,
+        standard_minutes: operation.standardMinutes,
+      }))
+    }
+  }
+
+  for (const existing of current) {
+    if (submittedIds.has(existing.id)) continue
+    const hasExecutionHistory = Number(existing.completed_quantity) > 0
+      || Number(existing.actual_minutes) > 0
+      || existing.execution_status !== 'pending'
+      || Boolean(existing.started_at)
+      || Boolean(existing.completed_at)
+    if (hasExecutionHistory) {
+      throw new CrudHttpError(409, { error: `Operation ${existing.sequence} has execution history and cannot be removed` })
+    }
+    existing.deleted_at = new Date()
+    existing.is_active = false
   }
 }
 
