@@ -37,6 +37,7 @@ jobs:
         run: yarn install
 
       - name: Sync platform package versions
+        continue-on-error: true
         run: yarn platform:sync --channel latest
 
       - name: Regenerate lockfile
@@ -55,3 +56,4 @@ jobs:
           git push origin HEAD:feat/production-work-orders-v0.1
 
 # CI bootstrap sequence intentionally runs before platform:sync.
+# platform:sync is allowed to fail temporarily so the lockfile can still be regenerated and committed.
