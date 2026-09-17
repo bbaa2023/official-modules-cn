@@ -25,7 +25,6 @@ const productionAssistant: AiAgentDefinition = {
     'production_work_orders.report',
     'production_work_orders.report_operation',
   ],
-  taskPlan: { enabled: true },
   executionMode: 'chat',
   readOnly: false,
   mutationPolicy: 'confirm-required',
